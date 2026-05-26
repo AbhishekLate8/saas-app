@@ -12,22 +12,26 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
-from dotenv import load_dotenv
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / '.env')
-otp_secret_key = os.getenv('OTP_SECRET_KEY')
+
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = True
+DEBUG = config(
+    "DEBUG",
+    default=False,
+    cast=bool
+)
 
 ALLOWED_HOSTS = [
     ".railway.app"  # https://saas.prod.railway.app
@@ -51,11 +55,13 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # my-apps
+    'commando',
     'visits',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -94,7 +100,7 @@ DATABASES = {
     }
 }
 
-DATABASE_URL = os.getenv('DATABASE_URL')
+DATABASE_URL = config("DATABASE_URL", default=None)
 # postgresql://user:password@host:5432/dbname
 
 if DATABASE_URL is not None:
@@ -144,6 +150,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_BASE_DIR = BASE_DIR / "staticfiles"
+STATICFILES_BASE_DIR.mkdir(parents=True, exist_ok=True)
 STATICFILES_VENDOR_DIR = STATICFILES_BASE_DIR / "vendors"
 
 # source for python manage.py collectstatic
@@ -156,8 +163,23 @@ STATICFILES_DIRS = [
 # output for python manage.py collectstatic
 # local cdn
 STATIC_ROOT = BASE_DIR.parent / "local-cdn"
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# email config
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = config("EMAIL_HOST", cast=str, default='smtp.gmail.com')
+EMAIL_PORT = config("EMAIL_PORT", cast=int, default=587)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", cast=bool, default=True) # use email port 587 for tls
+EMAIL_USE_SSL = config("EMAIL_USE_SSL", cast=bool, default=False) # use email port 465 for ssl
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", cast=str, default=None)
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", cast=str, default=None)
+
